@@ -1,6 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ShieldAlert,
+  Building2,
+  Users,
+  Coins,
+  TrendingUp,
+  HardDrive,
+  RotateCcw,
+  Search,
+  Eye,
+  Ban,
+  CheckCircle2,
+  AlertTriangle,
+  X,
+  Lock,
+} from "lucide-react";
 
 type Session = {
   accessToken: string;
@@ -176,65 +192,116 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
   }
 
   return (
-    <div className="super-admin-panel">
+    <div className="super-admin-panel space-y-6">
       <div className="catalog-heading">
         <div>
-          <span className="dashboard-label">SUPER ADMIN</span>
-          <h3>Kelola Platform & Multi-Tenant</h3>
-          <p>Pantau metrik seluruh toko, transaksi 30 hari, serta kelola status aktif/suspend tenant.</p>
+          <span className="dashboard-label text-amber-700">PLATFORM ADMIN KONSOL</span>
+          <h3>Kelola Multi-Tenant & Platform</h3>
+          <p>Pantau metrik seluruh toko, omzet global 30 hari, dan kelola status aktif/suspend tenant.</p>
         </div>
-        <span className="product-count">{tenants.length} Toko Terdaftar</span>
+        <span className="product-count bg-amber-50 text-amber-800 border border-amber-300">
+          <Building2 className="h-3.5 w-3.5" />
+          {tenants.length} Toko Terdaftar
+        </span>
       </div>
 
-      {error && <p className="feedback error" role="alert">{error}</p>}
-      {message && <p className="feedback success" role="status">{message}</p>}
+      {error && (
+        <div className="feedback error" role="alert">
+          <AlertTriangle className="h-4 w-4" />
+          <span>{error}</span>
+        </div>
+      )}
+      {message && (
+        <div className="feedback success" role="status">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>{message}</span>
+        </div>
+      )}
 
+      {/* Metrik Global */}
       {summary && (
-        <section className="catalog-panel">
+        <section className="catalog-panel border-amber-200">
           <div className="section-title">
-            <h4>Metrik Platform Global</h4>
-            <button className="button button-secondary" onClick={() => void loadData()} type="button">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-amber-700" />
+              <h4>Metrik Platform Global</h4>
+            </div>
+            <button
+              className="button button-secondary text-xs"
+              onClick={() => void loadData()}
+              type="button"
+            >
+              <RotateCcw className="h-3.5 w-3.5 inline mr-1" />
               Muat Ulang
             </button>
           </div>
-          <div className="kpi-grid">
-            <div className="kpi-card">
-              <span className="kpi-label">Total Toko</span>
-              <strong className="kpi-value">{summary.tenants}</strong>
-              <small className="field-hint">{summary.activeTenants} aktif · {summary.suspendedTenants} suspended</small>
-            </div>
-            <div className="kpi-card">
-              <span className="kpi-label">Pengguna Terdaftar</span>
-              <strong className="kpi-value">{summary.users}</strong>
-            </div>
-            <div className="kpi-card">
-              <span className="kpi-label">Transaksi (30 Hari)</span>
-              <strong className="kpi-value">{summary.transactions30d.toLocaleString("id-ID")}</strong>
-            </div>
-            <div className="kpi-card">
-              <span className="kpi-label">Omzet Global (30 Hari)</span>
-              <strong className="kpi-value">Rp {summary.revenue30d.toLocaleString("id-ID")}</strong>
-            </div>
+
+          <div className="report-kpis grid grid-cols-2 md:grid-cols-4 gap-4">
+            <article>
+              <div className="flex items-center justify-between">
+                <span>Total Toko</span>
+                <Building2 className="h-4 w-4 text-amber-600" />
+              </div>
+              <strong className="text-2xl text-slate-900">{summary.tenants}</strong>
+              <small className="text-[11px] text-slate-500">
+                {summary.activeTenants} aktif · {summary.suspendedTenants} suspended
+              </small>
+            </article>
+
+            <article>
+              <div className="flex items-center justify-between">
+                <span>Pengguna Terdaftar</span>
+                <Users className="h-4 w-4 text-slate-600" />
+              </div>
+              <strong className="text-2xl text-slate-900">{summary.users}</strong>
+            </article>
+
+            <article>
+              <div className="flex items-center justify-between">
+                <span>Transaksi (30 Hari)</span>
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
+              </div>
+              <strong className="text-2xl text-emerald-700">
+                {summary.transactions30d.toLocaleString("id-ID")}
+              </strong>
+            </article>
+
+            <article>
+              <div className="flex items-center justify-between">
+                <span>Omzet Global (30h)</span>
+                <Coins className="h-4 w-4 text-amber-600" />
+              </div>
+              <strong className="text-2xl text-amber-700">
+                Rp {summary.revenue30d.toLocaleString("id-ID")}
+              </strong>
+            </article>
           </div>
         </section>
       )}
 
+      {/* Tabel Tenant */}
       <section className="catalog-panel">
         <div className="section-title">
-          <h4>Daftar Toko & Metrik Penggunaan</h4>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <input
-              aria-label="Cari nama atau slug tenant"
-              className="search-input"
-              placeholder="Cari toko / slug…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-slate-700" />
+            <h4>Daftar Toko & Metrik Penggunaan</h4>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <input
+                aria-label="Cari nama atau slug tenant"
+                className="search-input pl-9"
+                placeholder="Cari toko / slug…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
             <select
               aria-label="Filter status tenant"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ padding: "6px 12px", borderRadius: "8px", border: "1px solid var(--line)" }}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold"
             >
               <option value="">Semua Status</option>
               <option value="ACTIVE">Aktif</option>
@@ -252,7 +319,7 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
                 <th>Pengguna</th>
                 <th>Produk</th>
                 <th>Customer</th>
-                <th>Transaksi (30h)</th>
+                <th>Trx (30h)</th>
                 <th>Omzet (30h)</th>
                 <th>Est. DB</th>
                 <th>Aksi</th>
@@ -266,42 +333,50 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
                 return (
                   <tr key={t.id}>
                     <td>
-                      <strong>{t.name}</strong>
-                      <br />
-                      <small style={{ color: "var(--muted)" }}>/{t.slug} {isSelf ? "(Toko Anda)" : ""}</small>
+                      <strong className="text-slate-900 block">{t.name}</strong>
+                      <small className="text-slate-500 font-mono">
+                        /{t.slug} {isSelf ? "(Toko Anda)" : ""}
+                      </small>
                     </td>
                     <td>
-                      <span className={isSuspended ? "status-inactive" : "status-active"}>
+                      <span className={isSuspended ? "status-inactive bg-red-50 text-red-700" : "status-active"}>
                         {isSuspended ? "Ditangguhkan" : "Aktif"}
                       </span>
                       {isSuspended && t.suspendReason && (
-                        <div style={{ fontSize: "11px", color: "var(--muted)", marginTop: "2px" }}>
-                          {t.suspendReason}
-                        </div>
+                        <div className="text-[10px] text-red-600 mt-1 max-w-xs">{t.suspendReason}</div>
                       )}
                     </td>
                     <td>{t.usage.users}</td>
                     <td>{t.usage.products}</td>
                     <td>{t.usage.customers}</td>
-                    <td>{t.usage.transactions30d}</td>
-                    <td>Rp {t.usage.revenue30d.toLocaleString("id-ID")}</td>
-                    <td>{formatBytes(t.usage.estimatedDbBytes)}</td>
+                    <td className="font-semibold">{t.usage.transactions30d}</td>
+                    <td className="font-bold text-slate-900">
+                      Rp {t.usage.revenue30d.toLocaleString("id-ID")}
+                    </td>
                     <td>
-                      <div style={{ display: "flex", gap: "4px" }}>
+                      <span className="font-mono text-xs text-slate-500">
+                        {formatBytes(t.usage.estimatedDbBytes)}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
                         <button
                           className="row-action"
                           onClick={() => void openDetail(t.id)}
                           type="button"
+                          title="Lihat Detail Tenant"
                         >
+                          <Eye className="h-3 w-3 inline mr-1" />
                           Detail
                         </button>
                         {isSuspended ? (
                           <button
-                            className="row-action"
+                            className="row-action text-emerald-700 hover:bg-emerald-50"
                             disabled={busy}
                             onClick={() => void toggleStatus(t, "ACTIVE")}
                             type="button"
                           >
+                            <CheckCircle2 className="h-3 w-3 inline mr-1" />
                             Aktifkan
                           </button>
                         ) : (
@@ -312,6 +387,7 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
                             title={isSelf ? "Tidak dapat menangguhkan toko sendiri" : "Tangguhkan toko"}
                             type="button"
                           >
+                            <Ban className="h-3 w-3 inline mr-1" />
                             Suspend
                           </button>
                         )}
@@ -323,7 +399,7 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
               {!tenants.length && (
                 <tr>
                   <td className="empty-table" colSpan={9}>
-                    Tidak ada tenant yang cocok.
+                    Tidak ada tenant yang cocok dengan kriteria pencarian.
                   </td>
                 </tr>
               )}
@@ -332,45 +408,31 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
         </div>
       </section>
 
+      {/* Modal Suspend Tenant */}
       {suspendModalTenant && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "grid",
-            placeItems: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              background: "#fff",
-              padding: "24px",
-              borderRadius: "16px",
-              maxWidth: "480px",
-              width: "90%",
-              boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
-            }}
-          >
-            <h4>Tangguhkan Toko &quot;{suspendModalTenant.name}&quot;</h4>
-            <p className="field-hint" style={{ marginTop: "8px" }}>
-              Toko yang ditangguhkan tidak akan dapat login atau melakukan transaksi. Semua sesi aktif akan dicabut.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border">
+            <div className="flex items-center gap-2 text-red-700 font-bold text-base mb-2">
+              <Ban className="h-5 w-5" />
+              <h4>Tangguhkan Toko &quot;{suspendModalTenant.name}&quot;</h4>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Toko yang ditangguhkan tidak akan dapat login atau melakukan transaksi penjualan. Semua sesi aktif kasir akan segera dicabut.
             </p>
-            <label style={{ display: "block", marginTop: "16px" }}>
+            <label className="block mt-4 text-xs font-bold text-slate-800">
               Alasan Penangguhan:
               <textarea
                 required
                 rows={3}
-                style={{ width: "100%", marginTop: "6px", padding: "8px" }}
-                placeholder="Contoh: Terjadi pelanggaran ketentuan layanan atau tagihan tertunggak."
+                className="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"
+                placeholder="Contoh: Pelanggaran ketentuan operasional atau verifikasi dokumen..."
                 value={suspendReason}
                 onChange={(e) => setSuspendReason(e.target.value)}
               />
             </label>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "20px" }}>
+            <div className="mt-5 flex justify-end gap-2">
               <button
-                className="button button-secondary"
+                className="button button-secondary text-xs"
                 disabled={busy}
                 onClick={() => {
                   setSuspendModalTenant(null);
@@ -381,7 +443,7 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
                 Batal
               </button>
               <button
-                className="button danger-action"
+                className="button button-primary bg-red-700 hover:bg-red-800 border-red-700 text-xs"
                 disabled={busy || !suspendReason.trim()}
                 onClick={() => void toggleStatus(suspendModalTenant, "SUSPENDED", suspendReason)}
                 type="button"
@@ -393,27 +455,43 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
         </div>
       )}
 
+      {/* Detail Tenant */}
       {selectedTenant && (
-        <section className="catalog-panel">
+        <section className="catalog-panel border-amber-200 bg-amber-50/10">
           <div className="section-title">
-            <h4>Detail Toko: {selectedTenant.name} ({selectedTenant.slug})</h4>
-            <button className="text-button" onClick={() => setSelectedTenant(null)} type="button">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-amber-700" />
+              <h4>Detail Toko: {selectedTenant.name} ({selectedTenant.slug})</h4>
+            </div>
+            <button className="text-button text-xs" onClick={() => setSelectedTenant(null)} type="button">
+              <X className="h-4 w-4 inline mr-1" />
               Tutup
             </button>
           </div>
+
           <div className="detail-grid">
-            <span>Status: <strong>{selectedTenant.status}</strong></span>
-            <span>Dibuat: <strong>{new Date(selectedTenant.createdAt).toLocaleDateString("id-ID")}</strong></span>
+            <span>
+              Status: <strong>{selectedTenant.status}</strong>
+            </span>
+            <span>
+              Dibuat: <strong>{new Date(selectedTenant.createdAt).toLocaleDateString("id-ID")}</strong>
+            </span>
             {selectedTenant.suspendedAt && (
-              <span>Waktu Suspend: <strong>{new Date(selectedTenant.suspendedAt).toLocaleString("id-ID")}</strong></span>
+              <span>
+                Waktu Suspend: <strong>{new Date(selectedTenant.suspendedAt).toLocaleString("id-ID")}</strong>
+              </span>
             )}
             {selectedTenant.suspendReason && (
-              <span>Alasan: <strong>{selectedTenant.suspendReason}</strong></span>
+              <span>
+                Alasan: <strong>{selectedTenant.suspendReason}</strong>
+              </span>
             )}
           </div>
 
-          <h5 style={{ marginTop: "20px", marginBottom: "8px" }}>Anggota & Peran ({selectedTenant.memberships.length})</h5>
-          <div className="product-table-wrap">
+          <h5 className="mt-5 mb-2 text-xs font-bold uppercase tracking-wider text-slate-700">
+            Anggota & Peran ({selectedTenant.memberships.length})
+          </h5>
+          <div className="product-table-wrap bg-white">
             <table className="product-table">
               <thead>
                 <tr>
@@ -426,9 +504,13 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
               <tbody>
                 {selectedTenant.memberships.map((m, i) => (
                   <tr key={i}>
-                    <td>{m.user.name}</td>
+                    <td className="font-bold text-slate-800">{m.user.name}</td>
                     <td>{m.user.email}</td>
-                    <td><span className="category-chip">{m.role.code}</span></td>
+                    <td>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                        {m.role.code}
+                      </span>
+                    </td>
                     <td>{new Date(m.createdAt).toLocaleDateString("id-ID")}</td>
                   </tr>
                 ))}
@@ -436,8 +518,10 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
             </table>
           </div>
 
-          <h5 style={{ marginTop: "20px", marginBottom: "8px" }}>Log Audit Terakhir ({selectedTenant.recentAudit.length})</h5>
-          <div className="product-table-wrap">
+          <h5 className="mt-5 mb-2 text-xs font-bold uppercase tracking-wider text-slate-700">
+            Log Audit Terakhir ({selectedTenant.recentAudit.length})
+          </h5>
+          <div className="product-table-wrap bg-white">
             <table className="product-table">
               <thead>
                 <tr>
@@ -450,13 +534,19 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
                 {selectedTenant.recentAudit.map((a, i) => (
                   <tr key={i}>
                     <td>{new Date(a.createdAt).toLocaleString("id-ID")}</td>
-                    <td><code>{a.action}</code></td>
+                    <td>
+                      <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-800">
+                        {a.action}
+                      </code>
+                    </td>
                     <td>{a.resource}</td>
                   </tr>
                 ))}
                 {!selectedTenant.recentAudit.length && (
                   <tr>
-                    <td className="empty-table" colSpan={3}>Belum ada log audit untuk tenant ini.</td>
+                    <td className="empty-table" colSpan={3}>
+                      Belum ada log audit untuk tenant ini.
+                    </td>
                   </tr>
                 )}
               </tbody>
