@@ -273,16 +273,16 @@ export default function Home() {
     const body =
       mode === "register"
         ? {
-            tenantName: values.tenantName,
-            ownerName: values.ownerName,
-            email: values.email,
-            password: values.password,
-          }
+          tenantName: values.tenantName,
+          ownerName: values.ownerName,
+          email: values.email,
+          password: values.password,
+        }
         : {
-            email: values.email,
-            password: values.password,
-            tenantSlug: values.tenantSlug,
-          };
+          email: values.email,
+          password: values.password,
+          tenantSlug: values.tenantSlug,
+        };
 
     try {
       const response = await fetch(`${API_URL}/auth/${endpoint}`, {
@@ -977,11 +977,11 @@ function CatalogDashboard({
     },
     ...(isSuperAdmin
       ? [
-          {
-            group: "Administrasi Platform",
-            items: [{ id: "admin", label: "Platform Admin", icon: ShieldAlert, available: true, isSpecial: true }],
-          },
-        ]
+        {
+          group: "Administrasi Platform",
+          items: [{ id: "admin", label: "Platform Admin", icon: ShieldAlert, available: true, isSpecial: true }],
+        },
+      ]
       : []),
   ];
 
@@ -1071,9 +1071,8 @@ function CatalogDashboard({
       <div className="app-body">
         {/* Sidebar Navigation */}
         <aside
-          className={`${
-            mobileMenuOpen ? "block" : "hidden"
-          } md:block app-sidebar`}
+          className={`${mobileMenuOpen ? "block" : "hidden"
+            } md:block app-sidebar`}
         >
           <div className="space-y-6">
             {navItems.map((group, groupIdx) => {
@@ -1930,13 +1929,12 @@ function CatalogDashboard({
                             </td>
                             <td>
                               <span
-                                className={`font-bold ${
-                                  stockQty <= 0
+                                className={`font-bold ${stockQty <= 0
                                     ? "text-red-600"
                                     : isLowStock
-                                    ? "text-amber-600"
-                                    : "text-emerald-700"
-                                }`}
+                                      ? "text-amber-600"
+                                      : "text-emerald-700"
+                                  }`}
                               >
                                 {stockQty} unit
                               </span>
@@ -1956,8 +1954,8 @@ function CatalogDashboard({
                                   product.deletedAt
                                     ? "status-inactive"
                                     : product.isActive
-                                    ? "status-active"
-                                    : "status-inactive"
+                                      ? "status-active"
+                                      : "status-inactive"
                                 }
                               >
                                 {product.deletedAt ? "Diarsipkan" : product.isActive ? "Aktif" : "Nonaktif"}
