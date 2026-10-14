@@ -33,3 +33,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 Projectke2.code-workspace
+
+# Playwright
+/test-results/
+/playwright-report/
+
+.env.e2e
