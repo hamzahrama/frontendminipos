@@ -148,29 +148,47 @@ export default function PvReportPanel({ session }: { session: Session }) {
     updateSettings({ ...settings, columns });
   }
 
+  const fetchReport = useCallback(async () => {
+    const response = await fetch(`${API_URL}/reports/pv?month=${encodeURIComponent(month)}`, {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+        "x-tenant-id": session.user.tenant.id,
+      },
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message ?? "Rekap PV gagal dimuat.");
+    return result as PvReport;
+  }, [month, session.accessToken, session.user.tenant.id]);
+
+  // Dipakai tombol (tetap menampilkan indikator loading)
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_URL}/reports/pv?month=${encodeURIComponent(month)}`, {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`,
-          "x-tenant-id": session.user.tenant.id,
-        },
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message ?? "Rekap PV gagal dimuat.");
-      setReport(result as PvReport);
+      setReport(await fetchReport());
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Rekap PV gagal dimuat.");
     } finally {
       setLoading(false);
     }
-  }, [month, session.accessToken, session.user.tenant.id]);
+  }, [fetchReport]);
 
+  // Muat otomatis saat bulan berubah; state hanya diubah setelah data datang
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    fetchReport()
+      .then((result) => {
+        if (cancelled) return;
+        setReport(result);
+        setError("");
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Rekap PV gagal dimuat.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchReport]);
 
   function exportCsv() {
     if (!report) return;
