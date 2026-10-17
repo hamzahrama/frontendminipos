@@ -49,30 +49,48 @@ export default function ReportsPanel({ session }: { session: Session }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const fetchReport = useCallback(async () => {
+    const query = new URLSearchParams({ from, to });
+    const response = await fetch(`${API_URL}/reports/summary?${query}`, {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+        "x-tenant-id": session.user.tenant.id,
+      },
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message ?? "Laporan tidak dapat dimuat.");
+    return result as Report;
+  }, [from, to, session.accessToken, session.user.tenant.id]);
+
+  // Dipakai tombol "Terapkan Filter"
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const query = new URLSearchParams({ from, to });
-      const response = await fetch(`${API_URL}/reports/summary?${query}`, {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`,
-          "x-tenant-id": session.user.tenant.id,
-        },
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message ?? "Laporan tidak dapat dimuat.");
-      setReport(result as Report);
+      setReport(await fetchReport());
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Laporan tidak dapat dimuat.");
     } finally {
       setLoading(false);
     }
-  }, [from, to, session.accessToken, session.user.tenant.id]);
+  }, [fetchReport]);
 
+  // Muat otomatis saat tanggal berubah; state hanya diubah setelah data datang
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    fetchReport()
+      .then((result) => {
+        if (cancelled) return;
+        setReport(result);
+        setError("");
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Laporan tidak dapat dimuat.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchReport]);
 
   return (
     <div className="reports-panel space-y-6">
