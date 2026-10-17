@@ -63,27 +63,47 @@ export default function ProfitLossPanel({ session }: { session: Session }) {
     [session.accessToken, session.user.tenant.id]
   );
 
+  const fetchData = useCallback(async () => {
+    const query = new URLSearchParams({ from, to });
+    const [pnl, expenseRows] = await Promise.all([
+      api(`/reports/profit-loss?${query}`),
+      api(`/expenses?${query}`),
+    ]);
+    return { pnl: pnl as Pnl, expenseRows: expenseRows as Expense[] };
+  }, [api, from, to]);
+
+  // Dipakai tombol dan aksi lain (tetap menampilkan indikator busy)
   const load = useCallback(async () => {
     setError("");
     setBusy(true);
     try {
-      const query = new URLSearchParams({ from, to });
-      const [pnl, expenseRows] = await Promise.all([
-        api(`/reports/profit-loss?${query}`),
-        api(`/expenses?${query}`),
-      ]);
-      setReport(pnl as Pnl);
-      setExpenses(expenseRows as Expense[]);
+      const { pnl, expenseRows } = await fetchData();
+      setReport(pnl);
+      setExpenses(expenseRows);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Laporan gagal dimuat.");
     } finally {
       setBusy(false);
     }
-  }, [api, from, to]);
+  }, [fetchData]);
 
+  // Muat otomatis saat tanggal berubah; state hanya diubah setelah data datang
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    fetchData()
+      .then(({ pnl, expenseRows }) => {
+        if (cancelled) return;
+        setReport(pnl);
+        setExpenses(expenseRows);
+        setError("");
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Laporan gagal dimuat.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchData]);
 
   async function createExpense(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
