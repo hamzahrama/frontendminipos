@@ -63,17 +63,31 @@ export default function CustomersPanel({ session }: { session: Session }) {
     [session.accessToken, session.user.tenant.id]
   );
 
-  const load = useCallback(async () => {
-    setRows(
-      (await api(`/customers${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""}`)) as Customer[]
-    );
-  }, [api, search]);
+  const fetchRows = useCallback(
+    async () =>
+      (await api(`/customers${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""}`)) as Customer[],
+    [api, search]
+  );
 
+  // Dipakai tombol cari, tombol Enter, dan setelah menyimpan pelanggan
+  const load = useCallback(async () => {
+    setRows(await fetchRows());
+  }, [fetchRows]);
+
+  // Muat otomatis saat pencarian berubah; state hanya diubah setelah data datang
   useEffect(() => {
-    void load().catch((caught) =>
-      setError(caught instanceof Error ? caught.message : "Customer gagal dimuat.")
-    );
-  }, [load]);
+    let cancelled = false;
+    fetchRows()
+      .then((data) => {
+        if (!cancelled) setRows(data);
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Customer gagal dimuat.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchRows]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
