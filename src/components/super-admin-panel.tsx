@@ -108,33 +108,53 @@ export default function SuperAdminPanel({ session }: { session: Session }) {
     [session.accessToken, session.user.tenant.id]
   );
 
+  const fetchAdmin = useCallback(async () => {
+    const query = new URLSearchParams();
+    if (search) query.set("search", search);
+    if (statusFilter) query.set("status", statusFilter);
+
+    const [sumRes, listRes] = await Promise.all([
+      fetch(`${API_URL}/admin/summary`, { headers }),
+      fetch(`${API_URL}/admin/tenants?${query.toString()}`, { headers }),
+    ]);
+
+    const [sumBody, listBody] = await Promise.all([sumRes.json(), listRes.json()]);
+
+    if (!sumRes.ok) throw new Error(sumBody.message ?? "Gagal memuat ringkasan admin.");
+    if (!listRes.ok) throw new Error(listBody.message ?? "Gagal memuat daftar tenant.");
+
+    return { summary: sumBody as AdminSummary, tenants: listBody as TenantItem[] };
+  }, [headers, search, statusFilter]);
+
+  // Dipakai tombol muat ulang dan setelah mengubah status tenant
   const loadData = useCallback(async () => {
     setError("");
     try {
-      const query = new URLSearchParams();
-      if (search) query.set("search", search);
-      if (statusFilter) query.set("status", statusFilter);
-
-      const [sumRes, listRes] = await Promise.all([
-        fetch(`${API_URL}/admin/summary`, { headers }),
-        fetch(`${API_URL}/admin/tenants?${query.toString()}`, { headers }),
-      ]);
-
-      const [sumBody, listBody] = await Promise.all([sumRes.json(), listRes.json()]);
-
-      if (!sumRes.ok) throw new Error(sumBody.message ?? "Gagal memuat ringkasan admin.");
-      if (!listRes.ok) throw new Error(listBody.message ?? "Gagal memuat daftar tenant.");
-
-      setSummary(sumBody as AdminSummary);
-      setTenants(listBody as TenantItem[]);
+      const data = await fetchAdmin();
+      setSummary(data.summary);
+      setTenants(data.tenants);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Gagal memuat data super admin.");
     }
-  }, [headers, search, statusFilter]);
+  }, [fetchAdmin]);
 
+  // Muat otomatis saat pencarian atau filter berubah; state hanya diubah setelah data datang
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    let cancelled = false;
+    fetchAdmin()
+      .then((data) => {
+        if (cancelled) return;
+        setSummary(data.summary);
+        setTenants(data.tenants);
+        setError("");
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Gagal memuat data super admin.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchAdmin]);
 
   async function openDetail(id: string) {
     setError("");
