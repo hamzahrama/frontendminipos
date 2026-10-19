@@ -54,10 +54,18 @@ export default function VouchersPanel({ session }: { session: Session }) {
   const load = useCallback(async () => setVouchers((await api("/vouchers")) as Voucher[]), [api]);
 
   useEffect(() => {
-    void load().catch((caught) =>
-      setError(caught instanceof Error ? caught.message : "Voucher gagal dimuat.")
-    );
-  }, [load]);
+    let cancelled = false;
+    api("/vouchers")
+      .then((rows) => {
+        if (!cancelled) setVouchers(rows as Voucher[]);
+      })
+      .catch((caught: unknown) => {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Voucher gagal dimuat.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api]);
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
