@@ -30,6 +30,7 @@ export function PublicCatalogView({ store, products }: { store: Store; products:
 
   useEffect(() => {
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- keranjang dibaca setelah mount agar HTML server dan browser sama (hindari hydration mismatch)
       setCart(JSON.parse(localStorage.getItem(key) ?? "[]") as CartItem[]);
     } catch {
       setCart([]);
