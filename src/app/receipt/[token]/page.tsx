@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import Image from "next/image";
 import QRCode from "qrcode";
 
@@ -13,7 +13,8 @@ type Receipt = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const money = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
 
-export default function ReceiptPage({ params }: { params: { token: string } }) {
+export default function ReceiptPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [qr, setQr] = useState("");
   const [width, setWidth] = useState<58 | 80>(58);
@@ -21,7 +22,7 @@ export default function ReceiptPage({ params }: { params: { token: string } }) {
 
   useEffect(() => {
     let active = true;
-    void fetch(`${API_URL}/receipt/${encodeURIComponent(params.token)}`)
+    void fetch(`${API_URL}/receipt/${encodeURIComponent(token)}`)
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.message ?? "Struk tidak ditemukan.");
@@ -29,7 +30,7 @@ export default function ReceiptPage({ params }: { params: { token: string } }) {
       })
       .catch((caught: unknown) => { if (active) setError(caught instanceof Error ? caught.message : "Struk tidak dapat dimuat."); });
     return () => { active = false; };
-  }, [params.token]);
+  }, [token]);
 
   useEffect(() => {
     if (!receipt) return;
