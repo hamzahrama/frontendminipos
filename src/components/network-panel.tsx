@@ -126,22 +126,42 @@ export default function NetworkPanel({ session }: { session: Session }) {
     [session.accessToken, session.user.tenant.id]
   );
 
-  const load = useCallback(async () => {
-    setError("");
+  const fetchNetwork = useCallback(async () => {
     const response = await fetch(`${apiUrl}/customers/network?month=${month}`, { headers });
     const body = await response.json();
     if (!response.ok) throw new Error(body.message ?? "Jaringan gagal dimuat.");
-    setData(body as Network);
-    setSelected((current) =>
-      current ? flatten((body as Network).roots).find((member) => member.id === current.id) ?? null : null
-    );
+    return body as Network;
   }, [month, headers]);
 
-  useEffect(() => {
-    void load().catch((cause) =>
-      setError(cause instanceof Error ? cause.message : "Jaringan gagal dimuat.")
+  const applyNetwork = useCallback((body: Network) => {
+    setData(body);
+    setSelected((current) =>
+      current ? flatten(body.roots).find((member) => member.id === current.id) ?? null : null
     );
-  }, [load]);
+  }, []);
+
+  // Dipakai setelah aksi lain (tetap membersihkan pesan error)
+  const load = useCallback(async () => {
+    setError("");
+    applyNetwork(await fetchNetwork());
+  }, [fetchNetwork, applyNetwork]);
+
+  // Muat otomatis saat bulan berubah; state hanya diubah setelah data datang
+  useEffect(() => {
+    let cancelled = false;
+    fetchNetwork()
+      .then((body) => {
+        if (cancelled) return;
+        applyNetwork(body);
+        setError("");
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : "Jaringan gagal dimuat.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchNetwork, applyNetwork]);
 
   const members = useMemo(
     () => (data ? flatten(data.roots).sort((a, b) => a.name.localeCompare(b.name)) : []),
