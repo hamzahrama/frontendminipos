@@ -153,23 +153,46 @@ export default function BonusPanel({ session }: { session: Session }) {
     [headers]
   );
 
-  const load = useCallback(async () => {
-    setError("");
+  const fetchData = useCallback(async () => {
     const [schemeBody, boardBody] = await Promise.all([
       api("/bonus/scheme"),
       api(`/bonus/leaderboard?month=${month}`),
     ]);
     const { updatedAt: _updatedAt, ...editable } = schemeBody as Scheme;
-    setScheme(schemeBody as Scheme);
-    setSchemeText(JSON.stringify(editable, null, 2));
-    setLeaderboard((boardBody as { rows: LeaderRow[] }).rows);
+    return {
+      scheme: schemeBody as Scheme,
+      schemeText: JSON.stringify(editable, null, 2),
+      rows: (boardBody as { rows: LeaderRow[] }).rows,
+    };
   }, [api, month]);
 
+  // Dipakai setelah aksi lain (misalnya menyimpan skema)
+  const load = useCallback(async () => {
+    setError("");
+    const data = await fetchData();
+    setScheme(data.scheme);
+    setSchemeText(data.schemeText);
+    setLeaderboard(data.rows);
+  }, [fetchData]);
+
+  // Muat otomatis saat bulan berubah; state hanya diubah setelah data datang
   useEffect(() => {
-    void load().catch((cause) =>
-      setError(cause instanceof Error ? cause.message : "Data bonus gagal dimuat.")
-    );
-  }, [load]);
+    let cancelled = false;
+    fetchData()
+      .then((data) => {
+        if (cancelled) return;
+        setScheme(data.scheme);
+        setSchemeText(data.schemeText);
+        setLeaderboard(data.rows);
+        setError("");
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : "Data bonus gagal dimuat.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchData]);
 
   async function saveScheme(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
