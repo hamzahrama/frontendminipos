@@ -32,8 +32,7 @@ export default function WhatsAppLogsPanel({ session }: { session: Session }) {
   const [status, setStatus] = useState<Status | null>(null);
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
-    setError("");
+  const fetchLogs = useCallback(async () => {
     const headers = {
       Authorization: `Bearer ${session.accessToken}`,
       "x-tenant-id": session.user.tenant.id,
@@ -44,15 +43,37 @@ export default function WhatsAppLogsPanel({ session }: { session: Session }) {
     ]);
     const [logBody, statusBody] = await Promise.all([logResponse.json(), statusResponse.json()]);
     if (!logResponse.ok) throw new Error(logBody.message ?? "Log WhatsApp gagal dimuat.");
-    setLogs(logBody as Log[]);
-    if (statusResponse.ok) setStatus(statusBody as Status);
+    return {
+      logs: logBody as Log[],
+      status: statusResponse.ok ? (statusBody as Status) : null,
+    };
   }, [session.accessToken, session.user.tenant.id]);
 
+  // Dipakai tombol "Muat ulang"
+  const load = useCallback(async () => {
+    setError("");
+    const data = await fetchLogs();
+    setLogs(data.logs);
+    if (data.status) setStatus(data.status);
+  }, [fetchLogs]);
+
+  // Muat otomatis saat panel dibuka; state hanya diubah setelah data datang
   useEffect(() => {
-    void load().catch((cause) =>
-      setError(cause instanceof Error ? cause.message : "Log WhatsApp gagal dimuat.")
-    );
-  }, [load]);
+    let cancelled = false;
+    fetchLogs()
+      .then((data) => {
+        if (cancelled) return;
+        setLogs(data.logs);
+        if (data.status) setStatus(data.status);
+        setError("");
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : "Log WhatsApp gagal dimuat.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchLogs]);
 
   return (
     <div className="customers-panel space-y-6">
