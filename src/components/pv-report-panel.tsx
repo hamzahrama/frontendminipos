@@ -128,12 +128,8 @@ export default function PvReportPanel({ session }: { session: Session }) {
   const [report, setReport] = useState<PvReport | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [settings, setSettings] = useState<CsvSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<CsvSettings>(() => loadSettings(session.user.tenant.id));
   const [showSettings, setShowSettings] = useState(false);
-
-  useEffect(() => {
-    setSettings(loadSettings(session.user.tenant.id));
-  }, [session.user.tenant.id]);
 
   function updateSettings(next: CsvSettings) {
     setSettings(next);
