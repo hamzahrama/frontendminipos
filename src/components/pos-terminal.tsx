@@ -65,6 +65,15 @@ type PosDraft = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const money = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
 
+function loadDrafts(tenantId: string): PosDraft[] {
+  try {
+    const stored = window.localStorage.getItem(`hni-pos-drafts-${tenantId}`);
+    return stored ? (JSON.parse(stored) as PosDraft[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function PosTerminal({ session }: { session: PosSession }) {
   const [products, setProducts] = useState<CartProduct[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -76,8 +85,7 @@ export default function PosTerminal({ session }: { session: PosSession }) {
   const [orderDiscount, setOrderDiscount] = useState("");
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherPreview, setVoucherPreview] = useState<VoucherPreview | null>(null);
-  const [drafts, setDrafts] = useState<PosDraft[]>([]);
-  const [draftsLoaded, setDraftsLoaded] = useState(false);
+  const [drafts, setDrafts] = useState<PosDraft[]>(() => loadDrafts(session.user.tenant.id));
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -109,22 +117,14 @@ export default function PosTerminal({ session }: { session: PosSession }) {
     []
   );
 
+  // Keranjang dikosongkan saat panel dibuka atau toko berganti
   useEffect(() => {
     clear();
-    try {
-      const stored = window.localStorage.getItem(`hni-pos-drafts-${session.user.tenant.id}`);
-      setDrafts(stored ? (JSON.parse(stored) as PosDraft[]) : []);
-    } catch {
-      setDrafts([]);
-    }
-    setDraftsLoaded(true);
   }, [session.user.tenant.id, clear]);
 
   useEffect(() => {
-    if (draftsLoaded) {
-      window.localStorage.setItem(`hni-pos-drafts-${session.user.tenant.id}`, JSON.stringify(drafts));
-    }
-  }, [drafts, draftsLoaded, session.user.tenant.id]);
+    window.localStorage.setItem(`hni-pos-drafts-${session.user.tenant.id}`, JSON.stringify(drafts));
+  }, [drafts, session.user.tenant.id]);
 
   useEffect(() => {
     let active = true;
