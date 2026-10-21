@@ -39,3 +39,4 @@ Projectke2.code-workspace
 /playwright-report/
 
 .env.e2e
+AGENTS.md
