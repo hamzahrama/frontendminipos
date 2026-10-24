@@ -39,6 +39,7 @@ import {
   Edit3,
   Eye,
   CheckCircle2,
+  Coins,
 } from "lucide-react";
 import PosTerminal from "../components/pos-terminal";
 import CustomersPanel from "../components/customers-panel";
@@ -48,6 +49,7 @@ import StorefrontPanel from "../components/storefront-panel";
 import WhatsAppLogsPanel from "../components/whatsapp-logs-panel";
 import BonusPanel from "../components/bonus-panel";
 import SuperAdminPanel from "../components/super-admin-panel";
+import BillingPanel from "../components/billing-panel";
 
 const ReportsPanel = dynamic(() => import("../components/reports-panel"), { ssr: false });
 const ProfitLossPanel = dynamic(() => import("../components/profit-loss-panel"), { ssr: false });
@@ -562,6 +564,7 @@ function CatalogDashboard({
     | "whatsapp"
     | "bonus"
     | "admin"
+    | "billing"
   >("catalog");
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -965,6 +968,7 @@ function CatalogDashboard({
         { id: "reports", label: "Laporan Penjualan", icon: BarChart3, available: isOwner },
         { id: "profit-loss", label: "Laba Rugi (P&L)", icon: TrendingUp, available: isOwner },
         { id: "pv", label: "Rekap PV Bulanan", icon: FileSpreadsheet, available: isOwner },
+        { id: "billing", label: "Langganan & Billing", icon: Coins, available: true },
       ],
     },
     {
@@ -1403,6 +1407,28 @@ function CatalogDashboard({
                 </button>
               </div>
               <SuperAdminPanel session={session} />
+            </div>
+          )}
+
+          {activePanel === "billing" && (
+            <div>
+              <div className="mb-4 flex items-center justify-between border-b pb-3">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <button onClick={() => setActivePanel("catalog")} className="hover:text-emerald-700 font-medium">
+                    Dashboard
+                  </button>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                  <span className="font-bold text-blue-700">Langganan & Billing</span>
+                </div>
+                <button
+                  onClick={() => setActivePanel("catalog")}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700"
+                  type="button"
+                >
+                  ← Kembali ke Katalog
+                </button>
+              </div>
+              <BillingPanel session={session} apiUrl={API_URL} />
             </div>
           )}
 

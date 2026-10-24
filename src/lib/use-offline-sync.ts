@@ -1,0 +1,105 @@
+import { useEffect, useState, useCallback } from "react";
+import { getProductSnapshot, getQueuedTransactions, saveProductSnapshot, markTransactionSent, deleteQueuedTransaction, QueuedTransaction, OfflineProduct } from "./offline-db";
+
+type UseOfflineSyncProps = {
+  tenantId: string;
+  apiUrl: string;
+  accessToken: string;
+};
+
+type UseOfflineSyncReturn = {
+  isOnline: boolean;
+  products: OfflineProduct[];
+  queue: QueuedTransaction[];
+  loading: boolean;
+  syncQueue: () => Promise<void>;
+  fetchSnapshot: () => Promise<void>;
+};
+
+export function useOfflineSync({ tenantId, apiUrl, accessToken }: UseOfflineSyncProps): UseOfflineSyncReturn {
+  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" && navigator.onLine);
+  const [products, setProducts] = useState<OfflineProduct[]>([]);
+  const [queue, setQueue] = useState<QueuedTransaction[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchSnapshot = useCallback(async () => {
+    if (!isOnline) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`${apiUrl}/offline/snapshot`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) throw new Error("Snapshot fetch gagal");
+      const data = (await res.json()) as { products: OfflineProduct[] };
+      await saveProductSnapshot(data.products);
+      setProducts(data.products);
+    } catch (e) {
+      console.error("Offline snapshot error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [isOnline, apiUrl, accessToken]);
+
+  const syncQueue = useCallback(async () => {
+    if (!isOnline || queue.length === 0) return;
+    for (const item of queue) {
+      if (item.status === "sent") continue;
+      try {
+        const res = await fetch(`${apiUrl}/transactions`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+            "Idempotency-Key": item.idempotencyKey || `offline-${item.id}`,
+          },
+          body: JSON.stringify({
+            customerId: item.customerId,
+            items: item.items,
+            memberStatus: item.memberStatus,
+            discount: item.discount,
+          }),
+        });
+        if (res.ok) {
+          await markTransactionSent(item.id as unknown as number);
+          setQueue((prev) => prev.map((q) => (q.id === item.id ? { ...q, status: "sent" } : q)));
+        } else {
+          console.error(`Sync failed for queue ${item.id}:`, res.status);
+          item.errorMessage = `HTTP ${res.status}`;
+        }
+      } catch (e) {
+        item.errorMessage = e instanceof Error ? e.message : "Unknown error";
+      }
+    }
+  }, [isOnline, queue, apiUrl, accessToken]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncQueue();
+    };
+    const handleOffline = () => setIsOnline(false);
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+      };
+    }
+  }, [syncQueue]);
+
+  useEffect(() => {
+    if (isOnline) fetchSnapshot();
+  }, [isOnline, fetchSnapshot]);
+
+  useEffect(() => {
+    const loadQueue = async () => {
+      const q = await getQueuedTransactions(tenantId);
+      setQueue(q);
+    };
+    loadQueue();
+  }, [tenantId]);
+
+  return { isOnline, products, queue, loading, syncQueue, fetchSnapshot };
+}

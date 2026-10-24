@@ -20,8 +20,12 @@ import {
   Sparkles,
   Receipt,
   X,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { CartLine, CartProduct, useCartStore } from "../stores/cart-store";
+import { useOfflineSync } from "../lib/use-offline-sync";
+import { queueTransaction } from "../lib/offline-db";
 
 type PosSession = {
   accessToken: string;
@@ -99,6 +103,7 @@ export default function PosTerminal({ session }: { session: PosSession }) {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [offlineQueueMsg, setOfflineQueueMsg] = useState("");
   const idempotency = useRef<{ fingerprint: string; key: string } | null>(null);
 
   const lines = useCartStore((state) => state.lines);
@@ -108,6 +113,12 @@ export default function PosTerminal({ session }: { session: PosSession }) {
   const setLines = useCartStore((state) => state.setLines);
   const remove = useCartStore((state) => state.remove);
   const clear = useCartStore((state) => state.clear);
+
+  const { isOnline, products: offlineProducts, syncQueue } = useOfflineSync({
+    tenantId: session.user.tenant.id,
+    apiUrl: API_URL,
+    accessToken: session.accessToken,
+  });
 
   const authHeaders = useCallback(
     (token: string, tenantId: string) => ({
@@ -250,6 +261,7 @@ export default function PosTerminal({ session }: { session: PosSession }) {
 
   async function checkout() {
     setError("");
+    setOfflineQueueMsg("");
     setCheckingOut(true);
     const payload = {
       customerId: customerId || undefined,
@@ -268,6 +280,40 @@ export default function PosTerminal({ session }: { session: PosSession }) {
     if (!idempotency.current || idempotency.current.fingerprint !== fingerprint) {
       idempotency.current = { fingerprint, key: crypto.randomUUID() };
     }
+
+    // Offline: queue transaksi ke IndexedDB
+    if (!isOnline) {
+      const queueKey = idempotency.current.key;
+      try {
+        await queueTransaction({
+          id: queueKey,
+          tenantId: session.user.tenant.id,
+          customerId: customerId || undefined,
+          items: payload.items.map(item => ({ ...item, isMember: memberMode })),
+          memberStatus: memberMode ? "member" : "non-member",
+          memberId: memberMode ? memberId.trim() : undefined,
+          discount: orderDiscountValue,
+          createdAt: Date.now(),
+          status: "pending",
+          idempotencyKey: queueKey,
+        });
+        setOfflineQueueMsg(`✓ Transaksi ${payload.items.length} item tertunda (antri saat online)`);
+        clear();
+        setCash("");
+        setOrderDiscount("");
+        setVoucherCode("");
+        setVoucherPreview(null);
+        idempotency.current = null;
+        setCheckoutResult({ id: queueKey, invoiceNo: `OFFLINE-${Date.now()}`, receiptToken: "", total: total.toString(), totalPv: pvTotal.toString(), changeAmount: change.toString() });
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Gagal menyimpan transaksi offline.");
+      } finally {
+        setCheckingOut(false);
+      }
+      return;
+    }
+
+    // Online: POST ke server
     try {
       const response = await fetch(`${API_URL}/transactions`, {
         method: "POST",
@@ -436,15 +482,27 @@ export default function PosTerminal({ session }: { session: PosSession }) {
           </div>
         </div>
 
-        {/* Shortcuts pills */}
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600">
-          <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-slate-700">F2</span> Cari
+        {/* Online/Offline status + Shortcuts pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          {isOnline ? (
+            <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 border border-green-200">
+              <Wifi className="h-3.5 w-3.5" /> Online
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 border border-amber-200">
+              <WifiOff className="h-3.5 w-3.5" /> Offline (Antri aktif)
+            </div>
+          )}
           <span className="text-slate-300">·</span>
-          <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-slate-700">F4</span> Toggle Member
-          <span className="text-slate-300">·</span>
-          <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-slate-700">Ctrl+Enter</span> Bayar
-          <span className="text-slate-300">·</span>
-          <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-slate-700">Ctrl+Shift+H</span> Tahan
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600">
+            <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-slate-700">F2</span> Cari
+            <span className="text-slate-300">·</span>
+            <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-slate-700">F4</span> Toggle Member
+            <span className="text-slate-300">·</span>
+            <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-slate-700">Ctrl+Enter</span> Bayar
+            <span className="text-slate-300">·</span>
+            <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-slate-700">Ctrl+Shift+H</span> Tahan
+          </div>
         </div>
       </div>
 
@@ -491,6 +549,13 @@ export default function PosTerminal({ session }: { session: PosSession }) {
             <div className="feedback error mb-3" role="alert">
               <AlertTriangle className="h-4 w-4" />
               <span>{error}</span>
+            </div>
+          )}
+
+          {offlineQueueMsg && (
+            <div className="feedback success mb-3" role="status">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>{offlineQueueMsg}</span>
             </div>
           )}
 
