@@ -167,7 +167,7 @@ export default function BillingPanel({ session, apiUrl }: { session: Session; ap
             <ul className="space-y-2 mb-4 text-sm">
               <li className="flex items-center gap-2">
                 <span className={plan.features.whatsapp ? "text-green-600" : "text-gray-400"}>✓</span>
-                <span>WhatsApp Gateway</span>
+                <span>Gateway WhatsApp</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className={plan.features.reports ? "text-green-600" : "text-gray-400"}>✓</span>
@@ -179,11 +179,11 @@ export default function BillingPanel({ session, apiUrl }: { session: Session; ap
               </li>
               <li className="flex items-center gap-2">
                 <span className={plan.features.bonusSimulator ? "text-green-600" : "text-gray-400"}>✓</span>
-                <span>Simulator Bonus</span>
+                <span>Simulator Komisi</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className={plan.features.offlineSync ? "text-green-600" : "text-gray-400"}>✓</span>
-                <span>Offline Sync</span>
+                <span>Sinkronisasi Offline</span>
               </li>
             </ul>
 

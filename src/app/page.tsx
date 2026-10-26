@@ -41,6 +41,8 @@ import {
   CheckCircle2,
   Coins,
 } from "lucide-react";
+import { i18n } from "../lib/i18n";
+import { saveSession, loadSession, clearSession, saveActivePanel, loadActivePanel } from "../lib/session-storage";
 import PosTerminal from "../components/pos-terminal";
 import CustomersPanel from "../components/customers-panel";
 import VouchersPanel from "../components/vouchers-panel";
@@ -201,6 +203,15 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Initialize session from localStorage on mount
+  useEffect(() => {
+    const savedSession = loadSession();
+    
+    if (savedSession) {
+      setSession(savedSession);
+    }
+  }, []);
+
   useEffect(() => {
     if (!session) return;
 
@@ -209,13 +220,17 @@ export default function Home() {
     const timeout = window.setTimeout(() => {
       void rotateSession(session)
         .then((nextSession) => {
-          if (active) setSession(nextSession);
+          if (active) {
+            setSession(nextSession);
+            saveSession(nextSession);
+          }
         })
         .catch((caught: unknown) => {
           if (!active) return;
           setSession(null);
           setProfile(null);
-          setError(caught instanceof Error ? caught.message : "Sesi berakhir. Silakan masuk kembali.");
+          clearSession();
+          setError(caught instanceof Error ? caught.message : i18n.auth.sessionExpired);
         });
     }, refreshAfter);
 
@@ -300,7 +315,8 @@ export default function Home() {
       }
 
       setSession(result as AuthSession);
-      setNotice(mode === "register" ? "Toko dan akun pemilik berhasil dibuat." : "Berhasil masuk.");
+      saveSession(result as AuthSession);
+      setNotice(mode === "register" ? i18n.auth.successRegister : i18n.auth.successLogin);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Tidak dapat terhubung ke server.");
     } finally {
@@ -332,12 +348,13 @@ export default function Home() {
         },
         body: JSON.stringify({ refreshToken: session.refreshToken }),
       });
-      if (!response.ok) logoutError = "Sesi ditutup di browser, tetapi server belum menerima permintaan keluar.";
+      if (!response.ok) logoutError = i18n.auth.sessionExpired;
     } catch {
       logoutError = "Koneksi terputus. Sesi lokal ditutup, tetapi server belum menerima permintaan keluar.";
     } finally {
       setSession(null);
       setProfile(null);
+      clearSession();
       setCopied(false);
     }
     setError(logoutError);
@@ -379,7 +396,7 @@ export default function Home() {
 
   // JIKA BELUM AUTHENTICATED: Tampilkan Halaman Login / Registrasi Modern
   return (
-    <main className="auth-shell">
+    <main className="auth-shell" suppressHydrationWarning>
       <div className="auth-layout">
         <section className="intro-panel" aria-label="Tentang HNI POS">
           <div className="brand-mark" aria-hidden="true">H</div>
@@ -416,14 +433,14 @@ export default function Home() {
 
         <section className="form-panel" aria-labelledby="auth-title">
           <p className="eyebrow">PORTAL MASUK</p>
-          <h2 id="auth-title">{mode === "login" ? "Masuk ke toko" : "Daftarkan toko baru"}</h2>
+          <h2 id="auth-title">{mode === "login" ? i18n.auth.login : i18n.auth.register}</h2>
           <p className="form-description">
             {mode === "login"
-              ? "Masukkan akun kasir/pemilik dan slug toko Anda."
-              : "Buat ruang kerja toko dan akun pemilik dalam hitungan detik."}
+              ? i18n.auth.loginDesc
+              : i18n.auth.registerDesc}
           </p>
 
-          <div className="mode-switch" role="tablist" aria-label="Pilih autentikasi">
+          <div className="mode-switch" role="tablist" aria-label={i18n.common.appName}>
             <button
               aria-selected={mode === "login"}
               className={mode === "login" ? "mode-tab active" : "mode-tab"}
@@ -454,7 +471,7 @@ export default function Home() {
                     maxLength={100}
                     minLength={2}
                     onChange={(event) => updateField("tenantName", event.target.value)}
-                    placeholder="Contoh: Toko Herbal Barokah"
+                    placeholder={i18n.form.exampleTenantName}
                     required
                     value={values.tenantName}
                   />
@@ -466,7 +483,7 @@ export default function Home() {
                     maxLength={100}
                     minLength={2}
                     onChange={(event) => updateField("ownerName", event.target.value)}
-                    placeholder="Nama lengkap pemilik toko"
+                    placeholder={i18n.form.ownerName}
                     required
                     value={values.ownerName}
                   />
@@ -479,7 +496,7 @@ export default function Home() {
                   autoComplete="organization"
                   maxLength={100}
                   onChange={(event) => updateField("tenantSlug", event.target.value)}
-                  placeholder="contoh: toko-sehat-ibu"
+                  placeholder={i18n.form.exampleSlug}
                   required
                   value={values.tenantSlug}
                 />
@@ -493,7 +510,7 @@ export default function Home() {
                 autoComplete="email"
                 maxLength={254}
                 onChange={(event) => updateField("email", event.target.value)}
-                placeholder="nama@email.com"
+                placeholder={i18n.form.exampleEmail}
                 required
                 type="email"
                 value={values.email}
@@ -506,7 +523,7 @@ export default function Home() {
                 maxLength={72}
                 minLength={8}
                 onChange={(event) => updateField("password", event.target.value)}
-                placeholder="Minimal 8 karakter"
+                placeholder={i18n.form.minPassword}
                 required
                 type="password"
                 value={values.password}
@@ -517,7 +534,7 @@ export default function Home() {
             {notice && <p className="feedback success" role="status">{notice}</p>}
 
             <button className="button button-primary" disabled={loading} type="submit">
-              {loading ? "Memproses…" : mode === "login" ? "Masuk ke Toko" : "Buat Toko & Akun Pemilik"}
+              {loading ? i18n.auth.processing : mode === "login" ? i18n.auth.login : i18n.auth.register}
             </button>
           </form>
 
@@ -948,42 +965,42 @@ function CatalogDashboard({
   // Navigation Items Definition
   const navItems: Array<{ group: string; items: NavItem[] }> = [
     {
-      group: "Operasional",
+      group: i18n.menu.operasional,
       items: [
-        { id: "catalog", label: "Katalog & Stok", icon: Package, available: true },
-        { id: "pos", label: "Terminal Kasir POS", icon: ShoppingCart, available: true, highlight: true },
+        { id: "catalog", label: i18n.menu.catalog, icon: Package, available: true },
+        { id: "pos", label: i18n.menu.pos, icon: ShoppingCart, available: true, highlight: true },
       ],
     },
     {
-      group: "Member & Jaringan",
+      group: i18n.menu.memberJaringan,
       items: [
-        { id: "customers", label: "Pelanggan & Member", icon: Users, available: true },
-        { id: "network", label: "Jaringan HNI", icon: GitFork, available: isOwner },
-        { id: "bonus", label: "Bonus & Leaderboard", icon: Award, available: isOwner },
+        { id: "customers", label: i18n.menu.customer, icon: Users, available: true },
+        { id: "network", label: i18n.menu.network, icon: GitFork, available: isOwner },
+        { id: "bonus", label: i18n.menu.bonus, icon: Award, available: isOwner },
       ],
     },
     {
-      group: "Keuangan & Laporan",
+      group: i18n.menu.keuanganLaporan,
       items: [
-        { id: "reports", label: "Laporan Penjualan", icon: BarChart3, available: isOwner },
-        { id: "profit-loss", label: "Laba Rugi (P&L)", icon: TrendingUp, available: isOwner },
-        { id: "pv", label: "Rekap PV Bulanan", icon: FileSpreadsheet, available: isOwner },
-        { id: "billing", label: "Langganan & Billing", icon: Coins, available: true },
+        { id: "reports", label: i18n.menu.reports, icon: BarChart3, available: isOwner },
+        { id: "profit-loss", label: i18n.menu.profitLoss, icon: TrendingUp, available: isOwner },
+        { id: "pv", label: i18n.menu.pv, icon: FileSpreadsheet, available: isOwner },
+        { id: "billing", label: i18n.menu.billing, icon: Coins, available: true },
       ],
     },
     {
-      group: "Pemasaran & Integrasi",
+      group: i18n.menu.pemasaranIntegrasi,
       items: [
-        { id: "vouchers", label: "Voucher Promo", icon: Ticket, available: isOwner },
-        { id: "storefront", label: "Katalog Publik", icon: Store, available: isOwner },
-        { id: "whatsapp", label: "Log WhatsApp", icon: MessageSquare, available: isOwner },
+        { id: "vouchers", label: i18n.menu.vouchers, icon: Ticket, available: isOwner },
+        { id: "storefront", label: i18n.menu.storefront, icon: Store, available: isOwner },
+        { id: "whatsapp", label: i18n.menu.whatsapp, icon: MessageSquare, available: isOwner },
       ],
     },
     ...(isSuperAdmin
       ? [
         {
-          group: "Administrasi Platform",
-          items: [{ id: "admin", label: "Platform Admin", icon: ShieldAlert, available: true, isSpecial: true }],
+          group: i18n.menu.administrasi,
+          items: [{ id: "admin", label: i18n.menu.admin, icon: ShieldAlert, available: true, isSpecial: true }],
         },
       ]
       : []),
@@ -1063,7 +1080,7 @@ function CatalogDashboard({
             <button
               onClick={onLogout}
               className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-              title="Keluar dari akun"
+              title={i18n.auth.logoutTitle}
               type="button"
             >
               <LogOut className="h-4 w-4" />
