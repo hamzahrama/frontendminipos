@@ -41,10 +41,10 @@ export default function WhatsAppLogsPanel({ session }: { session: Session }) {
       fetch(`${API_URL}/whatsapp/logs?limit=100`, { headers }),
       fetch(`${API_URL}/whatsapp/status`, { headers }),
     ]);
-    const [logBody, statusBody] = await Promise.all([logResponse.json(), statusResponse.json()]);
-    if (!logResponse.ok) throw new Error(logBody.message ?? "Log WhatsApp gagal dimuat.");
+    const [logBody, statusBody] = await Promise.all([logResponse.json().catch(() => ({})), statusResponse.json().catch(() => ({}))]);
+    if (!logResponse.ok) throw new Error((logBody as any)?.message ?? "Log WhatsApp gagal dimuat.");
     return {
-      logs: logBody as Log[],
+      logs: (Array.isArray(logBody) ? logBody : (logBody as any)?.data ?? []) as Log[],
       status: statusResponse.ok ? (statusBody as Status) : null,
     };
   }, [session.accessToken, session.user.tenant.id]);
@@ -106,6 +106,11 @@ export default function WhatsAppLogsPanel({ session }: { session: Session }) {
         <div className="p-4 rounded-xl border border-amber-300 bg-amber-50 text-xs text-amber-900 leading-relaxed">
           <strong>Perhatian:</strong> Gateway WhatsApp belum aktif di server ini. Atur variabel lingkungan{" "}
           <code>WHATSAPP_PROVIDER</code> (fonnte/wablas) dan <code>WHATSAPP_TOKEN</code> pada backend server agar kasir dapat mengirim struk digital otomatis.
+        </div>
+      )}
+      {!status && !error && (
+        <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-700 leading-relaxed">
+          Belum ada data status gateway. Pastikan API /whatsapp/status tersedia.
         </div>
       )}
 
