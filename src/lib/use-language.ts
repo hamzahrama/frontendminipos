@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { DEFAULT_LANGUAGE, isLanguage, type Language } from "./i18n";
 
 /**
@@ -85,7 +85,17 @@ export function useLanguage(): {
   language: Language;
   setLanguage: (next: Language) => void;
 } {
-  const language = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const language = useSyncExternalStore(
+    subscribe,
+    mounted ? getSnapshot : getServerSnapshot,
+    getServerSnapshot,
+  );
 
   const setLanguage = useCallback((next: Language) => {
     try {
@@ -98,8 +108,9 @@ export function useLanguage(): {
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     document.documentElement.lang = language;
-  }, [language]);
+  }, [language, mounted]);
 
   return { language, setLanguage };
 }
