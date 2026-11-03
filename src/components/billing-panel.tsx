@@ -33,13 +33,19 @@ export default function BillingPanel({ session, apiUrl }: { session: Session; ap
     const loadStatus = async () => {
       try {
         const res = await fetch(`${apiUrl}/billing/status`, {
-          headers: { Authorization: `Bearer ${session.accessToken}` },
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+            "x-tenant-id": session.user.tenant.id,
+          },
         });
-        if (!res.ok) throw new Error("Gagal memuat status");
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.message || `Gagal memuat status (${res.status})`);
+        }
         const data = await res.json();
         setStatus(data);
       } catch (e) {
-        setError(`Error: ${e instanceof Error ? e.message : "Unknown"}`);
+        setError(e instanceof Error ? e.message : "Gagal memuat status");
       } finally {
         setLoading(false);
       }
@@ -56,12 +62,13 @@ export default function BillingPanel({ session, apiUrl }: { session: Session; ap
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.accessToken}`,
+          "x-tenant-id": session.user.tenant.id,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ planCode, email: session.user.email }),
       });
-      if (!res.ok) throw new Error("Charge gagal");
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || "Charge gagal");
       if (data.error) {
         setError(data.error);
         setCharging(false);
