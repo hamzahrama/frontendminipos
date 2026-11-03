@@ -40,3 +40,4 @@ Projectke2.code-workspace
 
 .env.e2e
 AGENTS.md
+.env*

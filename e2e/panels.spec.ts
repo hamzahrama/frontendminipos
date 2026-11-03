@@ -35,7 +35,7 @@ test("semua panel terbuka tanpa error, dan laba-rugi bisa diunduh", async ({ pag
     await page.getByLabel("Slug toko").fill(slug!);
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password").fill(password!);
-    await page.getByRole("button", { name: "Masuk ke Toko" }).click();
+    await page.getByRole("button", { name: "Masuk ke toko" }).click();
     await expect(page.getByText("Pemilik Toko")).toBeVisible({ timeout: 15_000 });
   });
 

@@ -12,7 +12,7 @@ test.describe("login", () => {
     await page.getByLabel("Slug toko").fill(slug!);
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password").fill("password-salah-123");
-    await page.getByRole("button", { name: "Masuk ke Toko" }).click();
+    await page.getByRole("button", { name: "Masuk ke toko" }).click();
 
     await expect(page.locator("p.feedback.error")).toBeVisible();
     await expect(page.locator("p.feedback.error")).not.toHaveText("Failed to fetch");
@@ -29,7 +29,7 @@ test.describe("login", () => {
     await page.getByLabel("Slug toko").fill(slug!);
     await page.getByLabel("Email").fill(email!);
     await page.getByLabel("Password").fill(password!);
-    await page.getByRole("button", { name: "Masuk ke Toko" }).click();
+    await page.getByRole("button", { name: "Masuk ke toko" }).click();
 
     // Form login hilang = sudah masuk ke dashboard
     await expect(page.getByLabel("Slug toko")).toBeHidden({ timeout: 15_000 });

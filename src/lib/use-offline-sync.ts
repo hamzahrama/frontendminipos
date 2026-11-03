@@ -1,3 +1,4 @@
+import { i18n } from "./i18n";
 import { useEffect, useState, useCallback } from "react";
 import { getProductSnapshot, getQueuedTransactions, saveProductSnapshot, markTransactionSent, deleteQueuedTransaction, QueuedTransaction, OfflineProduct } from "./offline-db";
 
@@ -27,9 +28,12 @@ export function useOfflineSync({ tenantId, apiUrl, accessToken }: UseOfflineSync
     try {
       setLoading(true);
       const res = await fetch(`${apiUrl}/offline/snapshot`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "x-tenant-id": tenantId,
+        },
       });
-      if (!res.ok) throw new Error("Snapshot fetch gagal");
+      if (!res.ok) throw new Error(i18n.offline.snapshotFailed);
       const data = (await res.json()) as { products: OfflineProduct[] };
       await saveProductSnapshot(data.products);
       setProducts(data.products);
@@ -38,7 +42,7 @@ export function useOfflineSync({ tenantId, apiUrl, accessToken }: UseOfflineSync
     } finally {
       setLoading(false);
     }
-  }, [isOnline, apiUrl, accessToken]);
+  }, [isOnline, apiUrl, accessToken, tenantId]);
 
   const syncQueue = useCallback(async () => {
     if (!isOnline || queue.length === 0) return;
@@ -50,6 +54,7 @@ export function useOfflineSync({ tenantId, apiUrl, accessToken }: UseOfflineSync
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
+            "x-tenant-id": tenantId,
             "Idempotency-Key": item.idempotencyKey || `offline-${item.id}`,
           },
           body: JSON.stringify({
@@ -64,13 +69,15 @@ export function useOfflineSync({ tenantId, apiUrl, accessToken }: UseOfflineSync
           setQueue((prev) => prev.map((q) => (q.id === item.id ? { ...q, status: "sent" } : q)));
         } else {
           console.error(`Sync failed for queue ${item.id}:`, res.status);
-          item.errorMessage = `HTTP ${res.status}`;
+          const msg = `HTTP ${res.status}`;
+          setQueue((prev) => prev.map((q) => (q.id === item.id ? { ...q, errorMessage: msg } : q)));
         }
       } catch (e) {
-        item.errorMessage = e instanceof Error ? e.message : "Unknown error";
+        const msg = e instanceof Error ? e.message : "Unknown error";
+        setQueue((prev) => prev.map((q) => (q.id === item.id ? { ...q, errorMessage: msg } : q)));
       }
     }
-  }, [isOnline, queue, apiUrl, accessToken]);
+  }, [isOnline, queue, apiUrl, accessToken, tenantId]);
 
   useEffect(() => {
     const handleOnline = () => {

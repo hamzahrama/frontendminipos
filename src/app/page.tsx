@@ -41,7 +41,8 @@ import {
   CheckCircle2,
   Coins,
 } from "lucide-react";
-import { i18n } from "../lib/i18n";
+import { getDictionary, i18n } from "../lib/i18n";
+import { useLanguage } from "../lib/use-language";
 import { saveSession, loadSession, clearSession, saveActivePanel, loadActivePanel } from "../lib/session-storage";
 import PosTerminal from "../components/pos-terminal";
 import CustomersPanel from "../components/customers-panel";
@@ -203,10 +204,19 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const [mounted, setMounted] = useState(false);
+
+  // Language: SSR and first client render both use DEFAULT_LANGUAGE, then the
+  // persisted preference is applied after hydration. Never read localStorage
+  // during the initial render.
+  const { language, setLanguage } = useLanguage();
+  const t = getDictionary(language);
+
   // Initialize session from localStorage on mount
   useEffect(() => {
+    setMounted(true);
     const savedSession = loadSession();
-    
+
     if (savedSession) {
       setSession(savedSession);
     }
@@ -380,7 +390,7 @@ export default function Home() {
   }
 
   // JIKA SUDAH AUTHENTICATED: Tampilkan Enterprise Dashboard App Shell penuh
-  if (session) {
+  if (mounted && session) {
     return (
       <CatalogDashboard
         session={session}
@@ -396,51 +406,73 @@ export default function Home() {
 
   // JIKA BELUM AUTHENTICATED: Tampilkan Halaman Login / Registrasi Modern
   return (
-    <main className="auth-shell" suppressHydrationWarning>
+    <main className="auth-shell">
       <div className="auth-layout">
-        <section className="intro-panel" aria-label="Tentang HNI POS">
+        <section className="intro-panel" aria-label={t.intro.ariaLabel}>
           <div className="brand-mark" aria-hidden="true">H</div>
-          <p className="eyebrow">HNI POS ECOSYSTEM</p>
-          <h1>Kelola toko & jaringan lebih tenang.</h1>
+          <p className="eyebrow">{t.intro.ecosystem}</p>
+          <h1>{t.intro.title}</h1>
           <p className="intro-copy">
-            Platform modern untuk menata penjualan kasir, stok multi-gudang FEFO, rekapitulasi PV member, dan laporan keuangan toko HNI Anda.
+            {t.intro.description}
           </p>
 
           <div className="mt-8 grid gap-3 text-xs text-emerald-100">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-              <span>Kasir POS Cepat dengan Mode Member & Diskon</span>
+              <span>{t.intro.features.memberPOS}</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-              <span>Rekap PV Bulanan & Silsilah Jaringan Otomatis</span>
+              <span>{t.intro.features.monthlyPVReport}</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-              <span>Manajemen Batch FEFO & Alert Kedaluwarsa</span>
+              <span>{t.intro.features.fefoManagement}</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-              <span>Cetak Struk Digital & Kirim via WhatsApp</span>
+              <span>{t.intro.features.digitalReceipt}</span>
             </div>
           </div>
 
           <div className="intro-footer">
             <span className="online-dot" />
-            <span>Sistem Operasional Siap Digunakan</span>
+            <span>{t.intro.status.ready}</span>
           </div>
         </section>
 
         <section className="form-panel" aria-labelledby="auth-title">
-          <p className="eyebrow">PORTAL MASUK</p>
-          <h2 id="auth-title">{mode === "login" ? i18n.auth.login : i18n.auth.register}</h2>
+          <div className="mb-3 flex justify-end gap-1" role="group" aria-label={t.common.language}>
+            <button
+              aria-pressed={language === "id"}
+              className={`rounded px-2 py-1 text-xs font-semibold transition ${
+                language === "id" ? "bg-emerald-700 text-white" : "text-slate-500 hover:bg-slate-100"
+              }`}
+              onClick={() => setLanguage("id")}
+              type="button"
+            >
+              ID
+            </button>
+            <button
+              aria-pressed={language === "en"}
+              className={`rounded px-2 py-1 text-xs font-semibold transition ${
+                language === "en" ? "bg-emerald-700 text-white" : "text-slate-500 hover:bg-slate-100"
+              }`}
+              onClick={() => setLanguage("en")}
+              type="button"
+            >
+              EN
+            </button>
+          </div>
+          <p className="eyebrow">{t.intro.portal}</p>
+          <h2 id="auth-title">{mode === "login" ? t.auth.login : t.auth.register}</h2>
           <p className="form-description">
             {mode === "login"
-              ? i18n.auth.loginDesc
-              : i18n.auth.registerDesc}
+              ? t.auth.loginDesc
+              : t.auth.registerDesc}
           </p>
 
-          <div className="mode-switch" role="tablist" aria-label={i18n.common.appName}>
+          <div className="mode-switch" role="tablist" aria-label={t.common.appName}>
             <button
               aria-selected={mode === "login"}
               className={mode === "login" ? "mode-tab active" : "mode-tab"}
@@ -448,7 +480,7 @@ export default function Home() {
               role="tab"
               type="button"
             >
-              Masuk
+              {t.auth.tabLogin}
             </button>
             <button
               aria-selected={mode === "register"}
@@ -457,7 +489,7 @@ export default function Home() {
               role="tab"
               type="button"
             >
-              Daftar toko
+              {t.auth.tabRegister}
             </button>
           </div>
 
@@ -465,25 +497,25 @@ export default function Home() {
             {mode === "register" ? (
               <>
                 <label>
-                  Nama toko
+                  {t.form.tenantName}
                   <input
                     autoComplete="organization"
                     maxLength={100}
                     minLength={2}
                     onChange={(event) => updateField("tenantName", event.target.value)}
-                    placeholder={i18n.form.exampleTenantName}
+                    placeholder={t.form.exampleTenantName}
                     required
                     value={values.tenantName}
                   />
                 </label>
                 <label>
-                  Nama pemilik
+                  {t.form.ownerName}
                   <input
                     autoComplete="name"
                     maxLength={100}
                     minLength={2}
                     onChange={(event) => updateField("ownerName", event.target.value)}
-                    placeholder={i18n.form.ownerName}
+                    placeholder={t.form.ownerName}
                     required
                     value={values.ownerName}
                   />
@@ -491,39 +523,39 @@ export default function Home() {
               </>
             ) : (
               <label>
-                Slug toko
+                {t.form.tenantSlug}
                 <input
                   autoComplete="organization"
                   maxLength={100}
                   onChange={(event) => updateField("tenantSlug", event.target.value)}
-                  placeholder={i18n.form.exampleSlug}
+                  placeholder={t.form.exampleSlug}
                   required
                   value={values.tenantSlug}
                 />
-                <span className="field-hint">Slug toko unik yang diberikan saat pendaftaran.</span>
+                <span className="field-hint">{t.form.slugHint}</span>
               </label>
             )}
 
             <label>
-              Email
+              {t.form.email}
               <input
                 autoComplete="email"
                 maxLength={254}
                 onChange={(event) => updateField("email", event.target.value)}
-                placeholder={i18n.form.exampleEmail}
+                placeholder={t.form.exampleEmail}
                 required
                 type="email"
                 value={values.email}
               />
             </label>
             <label>
-              Password
+              {t.form.password}
               <input
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
                 maxLength={72}
                 minLength={8}
                 onChange={(event) => updateField("password", event.target.value)}
-                placeholder={i18n.form.minPassword}
+                placeholder={t.form.minPassword}
                 required
                 type="password"
                 value={values.password}
@@ -534,14 +566,14 @@ export default function Home() {
             {notice && <p className="feedback success" role="status">{notice}</p>}
 
             <button className="button button-primary" disabled={loading} type="submit">
-              {loading ? i18n.auth.processing : mode === "login" ? i18n.auth.login : i18n.auth.register}
+              {loading ? t.auth.processing : mode === "login" ? t.auth.login : t.auth.register}
             </button>
           </form>
 
-          <p className="security-note">Koneksi aman terenkripsi & password disimpan dalam hash standar industri.</p>
+          <p className="security-note">{t.auth.securityNote}</p>
         </section>
       </div>
-      <footer className="page-footer">HNI POS <span>•</span> Point of Sale & Jaringan Terpadu</footer>
+      <footer className="page-footer">HNI POS <span>•</span> {t.common.footerTagline}</footer>
     </main>
   );
 }
@@ -1973,10 +2005,10 @@ function CatalogDashboard({
                             <td>
                               <span
                                 className={`font-bold ${stockQty <= 0
-                                    ? "text-red-600"
-                                    : isLowStock
-                                      ? "text-amber-600"
-                                      : "text-emerald-700"
+                                  ? "text-red-600"
+                                  : isLowStock
+                                    ? "text-amber-600"
+                                    : "text-emerald-700"
                                   }`}
                               >
                                 {stockQty} unit

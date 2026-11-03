@@ -1,5 +1,6 @@
 "use client";
 
+import Script from "next/script";
 import { useEffect, useState } from "react";
 import { Coins, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
 import { PLANS, Plan } from "@/lib/plans";
@@ -147,7 +148,7 @@ export default function BillingPanel({ session, apiUrl }: { session: Session; ap
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {Object.entries(PLANS).map(([code, plan]) => (
           <div
-            key={code}
+            key={plan.code}
             className={`border rounded-lg p-4 transition ${
               status?.planCode === code ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"
             }`}
@@ -203,7 +204,11 @@ export default function BillingPanel({ session, apiUrl }: { session: Session; ap
       </div>
 
       {/* Midtrans Snap Script */}
-      <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}></script>
+      <Script
+        src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+        strategy="afterInteractive"
+      />
     </div>
   );
 }
