@@ -52,20 +52,23 @@ function getHtmlLang(): Language | null {
 }
 
 function getSnapshot(): Language {
-  const htmlLang = getHtmlLang();
-  if (htmlLang) {
-    return htmlLang;
+  try {
+    const stored = window.localStorage.getItem(LANGUAGE_KEY);
+    if (isLanguage(stored)) {
+      return stored;
+    }
+  } catch {
+    // ignore
   }
   const cookieLang = getCookieLanguage();
   if (cookieLang) {
     return cookieLang;
   }
-  try {
-    const stored = window.localStorage.getItem(LANGUAGE_KEY);
-    return isLanguage(stored) ? stored : DEFAULT_LANGUAGE;
-  } catch {
-    return DEFAULT_LANGUAGE;
+  const htmlLang = getHtmlLang();
+  if (htmlLang) {
+    return htmlLang;
   }
+  return DEFAULT_LANGUAGE;
 }
 
 function getServerSnapshot(): Language {
