@@ -1,4 +1,3 @@
-import { i18n } from "./i18n";
 import { useEffect, useState, useCallback } from "react";
 import { getProductSnapshot, getQueuedTransactions, saveProductSnapshot, markTransactionSent, deleteQueuedTransaction, QueuedTransaction, OfflineProduct } from "./offline-db";
 
@@ -18,13 +17,19 @@ type UseOfflineSyncReturn = {
 };
 
 export function useOfflineSync({ tenantId, apiUrl, accessToken }: UseOfflineSyncProps): UseOfflineSyncReturn {
-  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" && navigator.onLine);
+  const [isOnline, setIsOnline] = useState(false);
   const [products, setProducts] = useState<OfflineProduct[]>([]);
   const [queue, setQueue] = useState<QueuedTransaction[]>([]);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (typeof navigator !== "undefined") {
+      setIsOnline(navigator.onLine);
+    }
+  }, []);
+
   const fetchSnapshot = useCallback(async () => {
-    if (!isOnline) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
     try {
       setLoading(true);
       const res = await fetch(`${apiUrl}/offline/snapshot`, {
@@ -33,7 +38,7 @@ export function useOfflineSync({ tenantId, apiUrl, accessToken }: UseOfflineSync
           "x-tenant-id": tenantId,
         },
       });
-      if (!res.ok) throw new Error(i18n.offline.snapshotFailed);
+      if (!res.ok) throw new Error("Snapshot fetch gagal");
       const data = (await res.json()) as { products: OfflineProduct[] };
       await saveProductSnapshot(data.products);
       setProducts(data.products);
@@ -42,7 +47,7 @@ export function useOfflineSync({ tenantId, apiUrl, accessToken }: UseOfflineSync
     } finally {
       setLoading(false);
     }
-  }, [isOnline, apiUrl, accessToken, tenantId]);
+  }, [apiUrl, accessToken, tenantId]);
 
   const syncQueue = useCallback(async () => {
     if (!isOnline || queue.length === 0) return;
@@ -97,8 +102,10 @@ export function useOfflineSync({ tenantId, apiUrl, accessToken }: UseOfflineSync
   }, [syncQueue]);
 
   useEffect(() => {
-    if (isOnline) fetchSnapshot();
-  }, [isOnline, fetchSnapshot]);
+    if (typeof navigator !== "undefined" && navigator.onLine) {
+      fetchSnapshot();
+    }
+  }, [fetchSnapshot]);
 
   useEffect(() => {
     const loadQueue = async () => {
