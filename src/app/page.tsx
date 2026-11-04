@@ -392,8 +392,18 @@ export default function Home() {
   const showDashboard = mounted && !!session;
 
   return (
-    <>
-      <div style={{ display: showDashboard ? "none" : "block" }}>
+    <div id="auth-dashboard-wrapper" style={{ display: showDashboard ? "block" : "none" }}>
+      {showDashboard ? (
+        <CatalogDashboard
+          session={session}
+          profile={profile}
+          copied={copied}
+          onCopyToken={copyAccessToken}
+          onLogout={logout}
+          onSwitchAccount={useAnotherAccount}
+          globalError={error}
+        />
+      ) : (
         <main className="auth-shell">
           <div className="auth-layout">
             <section className="intro-panel" aria-label={t.intro.ariaLabel}>
@@ -563,21 +573,8 @@ export default function Home() {
           </div>
           <footer className="page-footer">HNI POS <span>•</span> {t.common.footerTagline}</footer>
         </main>
-      </div>
-      <div style={{ display: showDashboard ? "block" : "none" }}>
-        {session && (
-          <CatalogDashboard
-            session={session}
-            profile={profile}
-            copied={copied}
-            onCopyToken={copyAccessToken}
-            onLogout={logout}
-            onSwitchAccount={useAnotherAccount}
-            globalError={error}
-          />
-        )}
-      </div>
-    </>
+      )}
+    </div>
   );
 }
 
