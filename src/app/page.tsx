@@ -376,7 +376,7 @@ export default function Home() {
     setNotice("");
   }
 
-  function useAnotherAccount() {
+  const useAnotherAccount = () => {
     if (!session) return;
     void logout();
     setValues((current) => ({
@@ -387,195 +387,196 @@ export default function Home() {
     }));
     setSession(null);
     changeMode("login");
-  }
+  };
 
   const showDashboard = mounted && !!session;
 
+  if (mounted && session) {
+    return (
+      <CatalogDashboard
+        session={session}
+        profile={profile}
+        copied={copied}
+        onCopyToken={copyAccessToken}
+        onLogout={logout}
+        onSwitchAccount={useAnotherAccount}
+        globalError={error}
+      />
+    );
+  }
+
   return (
-    <div id="auth-dashboard-wrapper" style={{ display: showDashboard ? "block" : "none" }}>
-      {showDashboard ? (
-        <CatalogDashboard
-          session={session}
-          profile={profile}
-          copied={copied}
-          onCopyToken={copyAccessToken}
-          onLogout={logout}
-          onSwitchAccount={useAnotherAccount}
-          globalError={error}
-        />
-      ) : (
-        <main className="auth-shell">
-          <div className="auth-layout">
-            <section className="intro-panel" aria-label={t.intro.ariaLabel}>
-              <div className="brand-mark" aria-hidden="true">H</div>
-              <p className="eyebrow">{t.intro.ecosystem}</p>
-              <h1>{t.intro.title}</h1>
-              <p className="intro-copy">
-                {t.intro.description}
-              </p>
+    <main className="auth-shell">
+      <div className="auth-layout">
+        <section className="intro-panel" aria-label={t.intro.ariaLabel}>
+          <div className="brand-mark" aria-hidden="true">H</div>
+          <p className="eyebrow">{t.intro.ecosystem}</p>
+          <h1>{t.intro.title}</h1>
+          <p className="intro-copy">
+            {t.intro.description}
+          </p>
 
-              <div className="mt-8 grid gap-3 text-xs text-emerald-100">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                  <span>{t.intro.features.memberPOS}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                  <span>{t.intro.features.monthlyPVReport}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                  <span>{t.intro.features.fefoManagement}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                  <span>{t.intro.features.digitalReceipt}</span>
-                </div>
-              </div>
-
-              <div className="intro-footer">
-                <span className="online-dot" />
-                <span>{t.intro.status.ready}</span>
-              </div>
-            </section>
-
-            <section className="form-panel" aria-labelledby="auth-title">
-              <div className="mb-3 flex justify-end gap-1" role="group" aria-label={t.common.language}>
-                <button
-                  aria-pressed={language === "id"}
-                  className={`rounded px-2 py-1 text-xs font-semibold transition ${
-                    language === "id" ? "bg-emerald-700 text-white" : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                  onClick={() => setLanguage("id")}
-                  type="button"
-                >
-                  ID
-                </button>
-                <button
-                  aria-pressed={language === "en"}
-                  className={`rounded px-2 py-1 text-xs font-semibold transition ${
-                    language === "en" ? "bg-emerald-700 text-white" : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                  onClick={() => setLanguage("en")}
-                  type="button"
-                >
-                  EN
-                </button>
-              </div>
-              <p className="eyebrow">{t.intro.portal}</p>
-              <h2 id="auth-title">{mode === "login" ? t.auth.login : t.auth.register}</h2>
-              <p className="form-description">
-                {mode === "login"
-                  ? t.auth.loginDesc
-                  : t.auth.registerDesc}
-              </p>
-
-              <div className="mode-switch" role="tablist" aria-label={t.common.appName}>
-                <button
-                  aria-selected={mode === "login"}
-                  className={mode === "login" ? "mode-tab active" : "mode-tab"}
-                  onClick={() => changeMode("login")}
-                  role="tab"
-                  type="button"
-                >
-                  {t.auth.tabLogin}
-                </button>
-                <button
-                  aria-selected={mode === "register"}
-                  className={mode === "register" ? "mode-tab active" : "mode-tab"}
-                  onClick={() => changeMode("register")}
-                  role="tab"
-                  type="button"
-                >
-                  {t.auth.tabRegister}
-                </button>
-              </div>
-
-              <form className="auth-form" onSubmit={submit}>
-                {mode === "register" ? (
-                  <>
-                    <label>
-                      {t.form.tenantName}
-                      <input
-                        autoComplete="organization"
-                        maxLength={100}
-                        minLength={2}
-                        onChange={(event) => updateField("tenantName", event.target.value)}
-                        placeholder={t.form.exampleTenantName}
-                        required
-                        value={values.tenantName}
-                      />
-                    </label>
-                    <label>
-                      {t.form.ownerName}
-                      <input
-                        autoComplete="name"
-                        maxLength={100}
-                        minLength={2}
-                        onChange={(event) => updateField("ownerName", event.target.value)}
-                        placeholder={t.form.ownerName}
-                        required
-                        value={values.ownerName}
-                      />
-                    </label>
-                  </>
-                ) : (
-                  <label>
-                    {t.form.tenantSlug}
-                    <input
-                      autoComplete="organization"
-                      maxLength={100}
-                      onChange={(event) => updateField("tenantSlug", event.target.value)}
-                      placeholder={t.form.exampleSlug}
-                      required
-                      value={values.tenantSlug}
-                    />
-                    <span className="field-hint">{t.form.slugHint}</span>
-                  </label>
-                )}
-
-                <label>
-                  {t.form.email}
-                  <input
-                    autoComplete="email"
-                    maxLength={254}
-                    onChange={(event) => updateField("email", event.target.value)}
-                    placeholder={t.form.exampleEmail}
-                    required
-                    type="email"
-                    value={values.email}
-                  />
-                </label>
-                <label>
-                  {t.form.password}
-                  <input
-                    autoComplete={mode === "login" ? "current-password" : "new-password"}
-                    maxLength={72}
-                    minLength={8}
-                    onChange={(event) => updateField("password", event.target.value)}
-                    placeholder={t.form.minPassword}
-                    required
-                    type="password"
-                    value={values.password}
-                  />
-                </label>
-
-                {error && <p className="feedback error" role="alert">{error}</p>}
-                {notice && <p className="feedback success" role="status">{notice}</p>}
-
-                <button className="button button-primary" disabled={loading} type="submit">
-                  {loading ? t.auth.processing : mode === "login" ? t.auth.login : t.auth.register}
-                </button>
-              </form>
-
-              <p className="security-note">{t.auth.securityNote}</p>
-            </section>
+          <div className="mt-8 grid gap-3 text-xs text-emerald-100">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+              <span>{t.intro.features.memberPOS}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+              <span>{t.intro.features.monthlyPVReport}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+              <span>{t.intro.features.fefoManagement}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+              <span>{t.intro.features.digitalReceipt}</span>
+            </div>
           </div>
-          <footer className="page-footer">HNI POS <span>•</span> {t.common.footerTagline}</footer>
-        </main>
-      )}
-    </div>
+
+          <div className="intro-footer">
+            <span className="online-dot" />
+            <span>{t.intro.status.ready}</span>
+          </div>
+        </section>
+
+        <section className="form-panel" aria-labelledby="auth-title">
+          <div className="mb-3 flex justify-end gap-1" role="group" aria-label={t.common.language}>
+            <button
+              aria-pressed={language === "id"}
+              className={`rounded px-2 py-1 text-xs font-semibold transition ${
+                language === "id" ? "bg-emerald-700 text-white" : "text-slate-500 hover:bg-slate-100"
+              }`}
+              onClick={() => setLanguage("id")}
+              type="button"
+            >
+              ID
+            </button>
+            <button
+              aria-pressed={language === "en"}
+              className={`rounded px-2 py-1 text-xs font-semibold transition ${
+                language === "en" ? "bg-emerald-700 text-white" : "text-slate-500 hover:bg-slate-100"
+              }`}
+              onClick={() => setLanguage("en")}
+              type="button"
+            >
+              EN
+            </button>
+          </div>
+          <p className="eyebrow">{t.intro.portal}</p>
+          <h2 id="auth-title">{mode === "login" ? t.auth.login : t.auth.register}</h2>
+          <p className="form-description">
+            {mode === "login"
+              ? t.auth.loginDesc
+              : t.auth.registerDesc}
+          </p>
+
+          <div className="mode-switch" role="tablist" aria-label={t.common.appName}>
+            <button
+              aria-selected={mode === "login"}
+              className={mode === "login" ? "mode-tab active" : "mode-tab"}
+              onClick={() => changeMode("login")}
+              role="tab"
+              type="button"
+            >
+              {t.auth.tabLogin}
+            </button>
+            <button
+              aria-selected={mode === "register"}
+              className={mode === "register" ? "mode-tab active" : "mode-tab"}
+              onClick={() => changeMode("register")}
+              role="tab"
+              type="button"
+            >
+              {t.auth.tabRegister}
+            </button>
+          </div>
+
+          <form className="auth-form" onSubmit={submit}>
+            {mode === "register" ? (
+              <>
+                <label>
+                  {t.form.tenantName}
+                  <input
+                    autoComplete="organization"
+                    maxLength={100}
+                    minLength={2}
+                    onChange={(event) => updateField("tenantName", event.target.value)}
+                    placeholder={t.form.exampleTenantName}
+                    required
+                    value={values.tenantName}
+                  />
+                </label>
+                <label>
+                  {t.form.ownerName}
+                  <input
+                    autoComplete="name"
+                    maxLength={100}
+                    minLength={2}
+                    onChange={(event) => updateField("ownerName", event.target.value)}
+                    placeholder={t.form.ownerName}
+                    required
+                    value={values.ownerName}
+                  />
+                </label>
+              </>
+            ) : (
+              <label>
+                {t.form.tenantSlug}
+                <input
+                  autoComplete="organization"
+                  maxLength={100}
+                  onChange={(event) => updateField("tenantSlug", event.target.value)}
+                  placeholder={t.form.exampleSlug}
+                  required
+                  value={values.tenantSlug}
+                />
+                <span className="field-hint">{t.form.slugHint}</span>
+              </label>
+            )}
+
+            <label>
+              {t.form.email}
+              <input
+                autoComplete="email"
+                maxLength={254}
+                onChange={(event) => updateField("email", event.target.value)}
+                placeholder={t.form.exampleEmail}
+                required
+                type="email"
+                value={values.email}
+              />
+            </label>
+            <label>
+              {t.form.password}
+              <input
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                maxLength={72}
+                minLength={8}
+                onChange={(event) => updateField("password", event.target.value)}
+                placeholder={t.form.minPassword}
+                required
+                type="password"
+                value={values.password}
+              />
+            </label>
+
+            {error && <p className="feedback error" role="alert">{error}</p>}
+            {notice && <p className="feedback success" role="status">{notice}</p>}
+
+            <button className="button button-primary" disabled={loading} type="submit">
+              {loading ? t.auth.processing : mode === "login" ? t.auth.login : t.auth.register}
+            </button>
+          </form>
+
+          <p className="security-note">{t.auth.securityNote}</p>
+        </section>
+      </div>
+      <footer className="page-footer">HNI POS <span>•</span> {t.common.footerTagline}</footer>
+    </main>
   );
+}
 }
 
 // ==========================================
